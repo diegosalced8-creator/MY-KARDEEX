@@ -1,0 +1,819 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kárdex — Control de materiales</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin:0; padding:0; }
+  body {
+    font-family: 'Inter', sans-serif;
+    background: #EDE6D6;
+    color: #1F2A44;
+    min-height: 100vh;
+  }
+  .wrap { max-width: 980px; margin: 0 auto; padding: 36px 20px 60px; }
+  h1.title {
+    font-family: 'Fraunces', serif;
+    font-weight: 700;
+    font-size: 34px;
+    letter-spacing: -0.5px;
+    margin: 0;
+  }
+  .subtitle {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11.5px;
+    letter-spacing: 1.5px;
+    color: #8A7F63;
+    text-transform: uppercase;
+  }
+  .headerbar { display:flex; justify-content:space-between; align-items:flex-start; gap: 14px; flex-wrap:wrap; }
+  .rule { border-bottom: 2px solid #1F2A44; margin: 18px 0 28px; }
+  .mono-label { font-family:'JetBrains Mono', monospace; font-size:11px; color:#8A7F63; letter-spacing:1px; }
+  .k-input {
+    font-family: 'Inter', sans-serif;
+    background: #F7F3EA;
+    border: 1.5px solid #C9BFA5;
+    border-radius: 4px;
+    padding: 8px 10px;
+    font-size: 14px;
+    color: #1F2A44;
+    outline: none;
+  }
+  .k-input:focus { border-color:#1F2A44; }
+  .k-btn {
+    font-family:'Inter', sans-serif; font-weight:600; border:none; border-radius:4px;
+    padding:9px 16px; font-size:13.5px; cursor:pointer; display:inline-flex; align-items:center; gap:6px;
+    transition: transform .08s ease, opacity .15s ease;
+  }
+  .k-btn:active { transform: scale(0.97); }
+  .k-btn-primary { background:#1F2A44; color:#EDE6D6; }
+  .k-btn-primary:hover { opacity:.88; }
+  .k-btn-ghost { background:transparent; color:#1F2A44; border:1.5px solid #1F2A44; }
+  .k-btn-ghost:hover { background:#1F2A44; color:#EDE6D6; }
+  .k-btn-danger { background:transparent; color:#A6342A; border:1.5px solid #A6342A; }
+  .k-btn-danger:hover { background:#A6342A; color:#F7F3EA; }
+  .k-icon-btn { padding:4px; background:transparent; color:#8A7F63; }
+  .k-icon-btn:hover { color:#1F2A44; }
+  .card {
+    background:#F7F3EA; border:1.5px solid #C9BFA5; border-radius:8px;
+    padding:16px 16px 14px; cursor:pointer; position:relative; transition:border-color .12s ease;
+  }
+  .card:hover { border-color:#1F2A44; }
+  .grid { display:grid; grid-template-columns: repeat(auto-fill, minmax(260px,1fr)); gap:14px; }
+  table { width:100%; border-collapse:collapse; min-width:640px; }
+  thead tr { background:#1F2A44; }
+  th { font-family:'JetBrains Mono', monospace; font-size:11.5px; letter-spacing:1px; color:#EDE6D6; padding:10px 12px; font-weight:500; }
+  td { padding:9px 12px; font-size:13.5px; border-top:1px solid #C9BFA5; }
+  tbody tr:hover { background:#F7F1E4; }
+  .mono { font-family:'JetBrains Mono', monospace; }
+  .empty-box {
+    border:1.5px dashed #C9BFA5; border-radius:8px; padding:56px 20px; text-align:center; color:#8A7F63;
+  }
+  .stamp {
+    width:108px; height:108px; border-radius:50%; border:3px double #4B6B4F;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    transform: rotate(-6deg); color:#4B6B4F; flex-shrink:0;
+  }
+  .stamp.neg { border-color:#A6342A; color:#A6342A; }
+  .field { display:flex; flex-direction:column; gap:4px; }
+  .field label { font-family:'JetBrains Mono', monospace; font-size:10.5px; color:#8A7F63; letter-spacing:.5px; }
+  .toast {
+    position:fixed; bottom:20px; right:20px; background:#1F2A44; color:#EDE6D6; padding:10px 16px;
+    border-radius:6px; font-size:13px; font-family:'Inter',sans-serif; opacity:0; transform:translateY(8px);
+    transition: opacity .2s ease, transform .2s ease; pointer-events:none; z-index:50;
+  }
+  .toast.show { opacity:1; transform:translateY(0); }
+  [data-lucide] { width:15px; height:15px; }
+  .modal-overlay {
+    position:fixed; inset:0; background:rgba(31,42,68,0.55); display:flex; align-items:center; justify-content:center;
+    padding:20px; z-index:100;
+  }
+  .modal-box {
+    background:#EDE6D6; border-radius:10px; max-width:640px; width:100%; max-height:88vh; overflow-y:auto;
+    padding:26px; border:1.5px solid #1F2A44;
+  }
+  .cuadro-row {
+    background:#F7F3EA; border:1.5px solid #C9BFA5; border-radius:6px; padding:14px; margin-bottom:12px;
+  }
+  .slot-pair { display:grid; grid-template-columns: 1fr 1fr; gap:12px; }
+  .slot-field label { display:block; font-family:'JetBrains Mono', monospace; font-size:10.5px; color:#8A7F63; letter-spacing:.5px; margin-bottom:4px; }
+  select.k-input { width:100%; appearance:none; background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6'><path d='M0 0l5 6 5-6z' fill='%238A7F63'/></svg>"); background-repeat:no-repeat; background-position:right 10px center; padding-right:26px; }
+</style>
+</head>
+<body>
+<div id="app" class="wrap"></div>
+<div id="toast" class="toast"></div>
+
+<script>
+/* ---------- utilidades ---------- */
+const STORAGE_KEY = "kardex-formatos";
+const STORAGE_KEY_CODE = "kardex-doc-code";
+
+function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,8); }
+function todayISO(){
+  const d = new Date();
+  return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0");
+}
+function formatFechaDisplay(iso){
+  if(!iso) return "";
+  const [y,m,d] = iso.split("-");
+  return `${d}-${m}-${y.slice(2)}`;
+}
+// Calcula el saldo de Cuadro 1 y Cuadro 2 de forma INDEPENDIENTE (cada uno arranca en 0,
+// no se suman entre sí). Devuelve las dos listas ya con su saldo corrido propio.
+function withSaldoPorCuadro(entries){
+  const c1 = entries.filter(e => (e.cuadro||1) === 1);
+  const c2 = entries.filter(e => (e.cuadro||1) === 2);
+  let running1 = 0, running2 = 0;
+  const rowsC1 = c1.map(e => { running1 = running1 + (Number(e.entrada)||0) - (Number(e.salida)||0); return {...e, saldo: running1}; });
+  const rowsC2 = c2.map(e => { running2 = running2 + (Number(e.entrada)||0) - (Number(e.salida)||0); return {...e, saldo: running2}; });
+  return { rowsC1, rowsC2 };
+}
+function esc(v){
+  return String(v ?? "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+}
+function toast(msg){
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  setTimeout(()=>t.classList.remove("show"), 1800);
+}
+
+/* ---------- estado y persistencia ---------- */
+let formatos = [];
+try { formatos = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]"); } catch(e){ formatos = []; }
+// migración: las entradas antiguas no tenían "cuadro" (bloque 1 o 2) -> por defecto 1
+formatos.forEach(f => f.entries.forEach(e => { if(!e.cuadro) e.cuadro = 1; }));
+
+let docCode = localStorage.getItem(STORAGE_KEY_CODE) || "1294";
+function editDocCode(){
+  const v = prompt("Código que aparece en rojo arriba del Excel:", docCode);
+  if(v !== null && v.trim()){
+    docCode = v.trim();
+    localStorage.setItem(STORAGE_KEY_CODE, docCode);
+    render();
+  }
+}
+
+let view = { type: "list" };
+let showNewFormato = false;
+let newMaterialDraft = "";
+let lastCuadro = 1; // recuerda el último cuadro usado para que sea rápido seguir llenando el mismo
+let entryForm = { fecha: todayISO(), entrada: "", salida: "", observ: "", cuadro: 1 };
+let editingRowId = null;
+
+function persist(){
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(formatos));
+}
+
+/* ---------- render raíz ---------- */
+function render(){
+  const app = document.getElementById("app");
+  app.innerHTML = view.type === "detail" ? renderDetail(view.id) : renderList();
+  if (window.lucide) lucide.createIcons();
+}
+
+/* ---------- vista: listado ---------- */
+function renderList(){
+  const items = formatos.map(f => {
+    const { rowsC1, rowsC2 } = withSaldoPorCuadro(f.entries);
+    const saldo1 = rowsC1.length ? rowsC1[rowsC1.length-1].saldo : 0;
+    const saldo2 = rowsC2.length ? rowsC2[rowsC2.length-1].saldo : 0;
+    const lastEntry = f.entries[f.entries.length-1];
+    const lastFecha = lastEntry ? lastEntry.fecha : null;
+    return `
+      <div class="card" onclick="openFormato('${f.id}')">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+          <div style="display:flex;gap:8px;align-items:flex-start;">
+            <i data-lucide="package" style="color:#8A7F63;margin-top:3px;"></i>
+            <div style="font-family:'Fraunces',serif;font-weight:600;font-size:17px;line-height:1.25;">${esc(f.material)}</div>
+          </div>
+          <div style="display:flex;gap:2px;">
+            <button class="k-btn k-icon-btn" onclick="event.stopPropagation(); previewExport('${f.id}')" title="Exportar a Excel"><i data-lucide="download"></i></button>
+            <button class="k-btn k-icon-btn" onclick="event.stopPropagation(); removeFormato('${f.id}')" title="Eliminar formato"><i data-lucide="trash-2"></i></button>
+          </div>
+        </div>
+        <div style="margin-top:14px;display:flex;justify-content:space-between;align-items:flex-end;">
+          <div style="display:flex;gap:16px;">
+            <div>
+              <div class="mono-label">SALDO C1</div>
+              <div class="mono" style="font-weight:700;font-size:20px;color:${saldo1<0?'#A6342A':'#1F2A44'};">${saldo1}</div>
+            </div>
+            <div>
+              <div class="mono-label">SALDO C2</div>
+              <div class="mono" style="font-weight:700;font-size:20px;color:${saldo2<0?'#A6342A':'#1F2A44'};">${saldo2}</div>
+            </div>
+          </div>
+          <div style="text-align:right;">
+            <div class="mono-label">${f.entries.length} MOV.</div>
+            <div class="mono" style="font-size:12px;color:#8A7F63;">${lastFecha ? formatFechaDisplay(lastFecha) : '—'}</div>
+          </div>
+        </div>
+      </div>`;
+  }).join("");
+
+  return `
+    <div class="headerbar">
+      <div>
+        <h1 class="title">Kárdex</h1>
+        <span class="subtitle">Control de materiales</span>
+      </div>
+      <div onclick="editDocCode()" style="cursor:pointer;display:flex;align-items:center;gap:6px;background:#F7F3EA;border:1.5px solid #C9BFA5;border-radius:6px;padding:8px 12px;">
+        <div style="text-align:right;">
+          <div class="mono-label" style="letter-spacing:1px;">CÓDIGO (EXCEL)</div>
+          <div class="mono" style="font-weight:700;font-size:15px;color:#A6342A;">${esc(docCode)}</div>
+        </div>
+        <i data-lucide="pencil" style="width:13px;height:13px;color:#8A7F63;"></i>
+      </div>
+    </div>
+    <div class="rule"></div>
+
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;">
+      <div class="mono-label">${formatos.length} ${formatos.length===1?'FORMATO':'FORMATOS'} REGISTRADOS</div>
+      ${!showNewFormato ? `<button class="k-btn k-btn-primary" onclick="toggleNewFormato(true)"><i data-lucide="plus"></i>Nuevo material</button>` : ""}
+    </div>
+
+    ${showNewFormato ? `
+    <div style="background:#F7F3EA;border:1.5px solid #1F2A44;border-radius:6px;padding:18px;margin-bottom:24px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+      <label class="mono-label">MATERIAL</label>
+      <input id="newMaterialInput" class="k-input" style="flex:1;min-width:200px;" placeholder="Ej: Cajas 3/9 AGU 25 kg" value="${esc(newMaterialDraft)}" onkeydown="if(event.key==='Enter') createFormato()">
+      <button class="k-btn k-btn-primary" onclick="createFormato()"><i data-lucide="check"></i>Crear</button>
+      <button class="k-btn k-btn-ghost" onclick="toggleNewFormato(false)"><i data-lucide="x"></i>Cancelar</button>
+    </div>` : ""}
+
+    ${formatos.length===0 && !showNewFormato ? `
+    <div class="empty-box">
+      <i data-lucide="archive" style="width:30px;height:30px;opacity:.6;margin-bottom:10px;"></i>
+      <div style="font-family:'Fraunces',serif;font-size:18px;color:#1F2A44;margin-bottom:4px;">Aún no hay formatos</div>
+      <div style="font-size:13.5px;">Crea uno para empezar a llevar el control de un material.</div>
+    </div>` : `<div class="grid">${items}</div>`}
+  `;
+}
+
+function toggleNewFormato(v){
+  showNewFormato = v;
+  newMaterialDraft = "";
+  render();
+  if (v) document.getElementById("newMaterialInput")?.focus();
+}
+function createFormato(){
+  const input = document.getElementById("newMaterialInput");
+  const name = (input ? input.value : "").trim();
+  if(!name) return;
+  const f = { id: uid(), material: name, createdAt: Date.now(), entries: [] };
+  formatos.unshift(f);
+  persist();
+  showNewFormato = false;
+  openFormato(f.id);
+}
+function removeFormato(id){
+  const f = formatos.find(x=>x.id===id);
+  if(!f) return;
+  if(!confirm(`¿Eliminar "${f.material}" y todo su historial?`)) return;
+  formatos = formatos.filter(x=>x.id!==id);
+  persist();
+  render();
+  toast("Formato eliminado");
+}
+function openFormato(id){
+  view = { type:"detail", id };
+  entryForm = { fecha: todayISO(), entrada:"", salida:"", observ:"", cuadro: lastCuadro };
+  editingRowId = null;
+  render();
+}
+
+/* ---------- vista: detalle de formato ---------- */
+function renderCuadroTable(label, rows){
+  const body = rows.length === 0
+    ? `<tr><td colspan="6" style="padding:20px;text-align:center;color:#8A7F63;font-size:13px;">Sin movimientos en este cuadro.</td></tr>`
+    : rows.map((r,i) => `
+      <tr style="background:${i%2===1?'#F7F3EA80':'transparent'};">
+        <td class="mono" style="text-align:right;">${formatFechaDisplay(r.fecha)}</td>
+        <td class="mono" style="text-align:right;color:${r.entrada?'#4B6B4F':'#C9BFA5'};">${r.entrada || '—'}</td>
+        <td class="mono" style="text-align:right;color:${r.salida?'#A6342A':'#C9BFA5'};">${r.salida || '—'}</td>
+        <td class="mono" style="text-align:right;font-weight:700;">${r.saldo}</td>
+        <td style="color:#5c5442;">${esc(r.observ||"")}</td>
+        <td style="text-align:center;">
+          <button class="k-btn k-icon-btn" onclick="startEditRow('${r.id}')"><i data-lucide="pencil"></i></button>
+          <button class="k-btn k-icon-btn" onclick="deleteRow('${r.id}')"><i data-lucide="trash-2"></i></button>
+        </td>
+      </tr>`).join("");
+
+  return `
+    <div class="mono-label" style="margin:18px 0 8px;">${label}</div>
+    <div style="overflow-x:auto;border:1.5px solid #1F2A44;border-radius:6px;">
+      <table>
+        <thead><tr>
+          <th style="text-align:right;">FECHA</th><th style="text-align:right;">ENTRADA</th><th style="text-align:right;">SALIDA</th>
+          <th style="text-align:right;">SALDO</th><th style="text-align:left;">OBSERVAC.</th><th></th>
+        </tr></thead>
+        <tbody>${body}</tbody>
+      </table>
+    </div>`;
+}
+
+function renderDetail(id){
+  const f = formatos.find(x=>x.id===id);
+  if(!f){ view={type:"list"}; return renderList(); }
+  const { rowsC1, rowsC2 } = withSaldoPorCuadro(f.entries); // Cuadro 1 y Cuadro 2 llevan su saldo cada uno por separado
+  const saldo1 = rowsC1.length ? rowsC1[rowsC1.length-1].saldo : 0;
+  const saldo2 = rowsC2.length ? rowsC2[rowsC2.length-1].saldo : 0;
+
+  return `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;">
+      <button class="k-btn" style="background:transparent;color:#1F2A44;padding:6px 4px;" onclick="backToList()"><i data-lucide="arrow-left"></i>Formatos</button>
+      <button class="k-btn k-btn-ghost" onclick="previewExport('${f.id}')"><i data-lucide="download"></i>Exportar a Excel</button>
+    </div>
+
+    <div style="display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:20px;border-bottom:2px solid #1F2A44;padding-bottom:16px;margin-bottom:22px;">
+      <div>
+        <div class="mono-label" style="margin-bottom:4px;">MATERIAL</div>
+        <div style="display:flex;align-items:center;gap:8px;cursor:pointer;" onclick="renameFormato('${f.id}')">
+          <h2 style="font-family:'Fraunces',serif;font-size:26px;margin:0;font-weight:600;">${esc(f.material)}</h2>
+          <i data-lucide="pencil" style="width:14px;height:14px;color:#8A7F63;"></i>
+        </div>
+      </div>
+      <div style="display:flex;gap:14px;">
+        <div class="stamp ${saldo1<0?'neg':''}" style="width:92px;height:92px;">
+          <div class="mono" style="font-size:8px;letter-spacing:1px;">SALDO C1</div>
+          <div class="mono" style="font-weight:700;font-size:21px;">${saldo1}</div>
+        </div>
+        <div class="stamp ${saldo2<0?'neg':''}" style="width:92px;height:92px;">
+          <div class="mono" style="font-size:8px;letter-spacing:1px;">SALDO C2</div>
+          <div class="mono" style="font-weight:700;font-size:21px;">${saldo2}</div>
+        </div>
+      </div>
+    </div>
+
+    <div style="background:#F7F3EA;border:1.5px solid #1F2A44;border-radius:6px;padding:16px;margin-bottom:10px;">
+      <div class="mono-label" style="margin-bottom:10px;">${editingRowId ? "EDITAR MOVIMIENTO" : "REGISTRAR MOVIMIENTO"}</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;">
+        <div class="field" style="width:120px;">
+          <label>CUADRO</label>
+          <select id="f_cuadro" class="k-input" onchange="onCuadroSelectChange(this.value)">
+            <option value="1" ${entryForm.cuadro==1?"selected":""}>Cuadro 1</option>
+            <option value="2" ${entryForm.cuadro==2?"selected":""}>Cuadro 2</option>
+          </select>
+        </div>
+        ${entryForm.cuadro==2 ? `
+        <div class="field" style="width:170px;">
+          <label>NOMBRE CUADRO 2</label>
+          <input id="f_material2" class="k-input" placeholder="Ej: Maíz" value="${esc(f.material2 || "")}" onchange="saveMaterial2('${f.id}', this.value)">
+        </div>` : ""}
+        <div class="field">
+          <label>FECHA</label>
+          <input id="f_fecha" type="date" class="k-input" value="${entryForm.fecha}">
+        </div>
+        <div class="field" style="width:100px;">
+          <label>ENTRADA</label>
+          <input id="f_entrada" type="number" min="0" class="k-input" placeholder="0" value="${entryForm.entrada}">
+        </div>
+        <div class="field" style="width:100px;">
+          <label>SALIDA</label>
+          <input id="f_salida" type="number" min="0" class="k-input" placeholder="0" value="${entryForm.salida}">
+        </div>
+        <div class="field" style="flex:1;min-width:160px;">
+          <label>OBSERVAC.</label>
+          <input id="f_observ" class="k-input" style="width:100%;" placeholder="Opcional" value="${esc(entryForm.observ)}" onkeydown="if(event.key==='Enter') submitEntry('${f.id}')">
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button class="k-btn k-btn-primary" onclick="submitEntry('${f.id}')"><i data-lucide="${editingRowId?'check':'plus'}"></i>${editingRowId ? "Guardar" : "Agregar"}</button>
+          ${editingRowId ? `<button class="k-btn k-btn-ghost" onclick="cancelEditRow()"><i data-lucide="x"></i></button>` : ""}
+        </div>
+      </div>
+      <div style="font-size:12px;color:#8A7F63;margin-top:10px;">Cuadro 1 y Cuadro 2 son independientes — cada uno lleva su propio saldo, empezando en 0. Cámbialo arriba según dónde quieras registrar.</div>
+    </div>
+
+    ${renderCuadroTable(`CUADRO 1 — ${esc(f.material)} · Saldo: ${saldo1}`, rowsC1)}
+    ${renderCuadroTable(`<span onclick="editMaterial2('${f.id}')" style="cursor:pointer;display:inline-flex;align-items:center;gap:6px;">CUADRO 2 — ${esc(f.material2 || f.material)} · Saldo: ${saldo2} <i data-lucide="pencil" style="width:11px;height:11px;color:#8A7F63;"></i></span>`, rowsC2)}
+  `;
+}
+
+function backToList(){ view = {type:"list"}; render(); }
+
+function syncFormFieldsFromDOM(){
+  const g = id => document.getElementById(id);
+  if(g("f_fecha")) entryForm.fecha = g("f_fecha").value;
+  if(g("f_entrada")) entryForm.entrada = g("f_entrada").value;
+  if(g("f_salida")) entryForm.salida = g("f_salida").value;
+  if(g("f_observ")) entryForm.observ = g("f_observ").value;
+}
+function onCuadroSelectChange(value){
+  syncFormFieldsFromDOM();
+  entryForm.cuadro = Number(value) || 1;
+  render();
+}
+function saveMaterial2(formatoId, value){
+  syncFormFieldsFromDOM();
+  const f = formatos.find(x=>x.id===formatoId);
+  if(f){ f.material2 = value.trim() || null; persist(); }
+  render();
+}
+
+function readEntryForm(){
+  return {
+    fecha: document.getElementById("f_fecha").value,
+    entrada: document.getElementById("f_entrada").value,
+    salida: document.getElementById("f_salida").value,
+    observ: document.getElementById("f_observ").value,
+    cuadro: Number(document.getElementById("f_cuadro").value) || 1
+  };
+}
+
+function submitEntry(formatoId){
+  const form = readEntryForm();
+  if(!form.fecha) return;
+  const entrada = form.entrada === "" ? 0 : Number(form.entrada);
+  const salida = form.salida === "" ? 0 : Number(form.salida);
+  if(entrada===0 && salida===0) return;
+  const f = formatos.find(x=>x.id===formatoId);
+  if(!f) return;
+
+  if(editingRowId){
+    f.entries = f.entries.map(en => en.id===editingRowId ? {...en, fecha:form.fecha, entrada, salida, observ:form.observ, cuadro:form.cuadro} : en);
+  } else {
+    f.entries.push({ id: uid(), fecha: form.fecha, entrada, salida, observ: form.observ, cuadro: form.cuadro });
+  }
+  persist();
+  lastCuadro = form.cuadro;
+  entryForm = { fecha: todayISO(), entrada:"", salida:"", observ:"", cuadro: lastCuadro };
+  editingRowId = null;
+  render();
+}
+
+function startEditRow(rowId){
+  const f = formatos.find(x=>x.id===view.id);
+  const row = f.entries.find(e=>e.id===rowId);
+  if(!row) return;
+  editingRowId = rowId;
+  entryForm = { fecha: row.fecha, entrada: row.entrada ? String(row.entrada) : "", salida: row.salida ? String(row.salida) : "", observ: row.observ || "", cuadro: row.cuadro || 1 };
+  render();
+}
+function cancelEditRow(){
+  editingRowId = null;
+  entryForm = { fecha: todayISO(), entrada:"", salida:"", observ:"", cuadro: lastCuadro };
+  render();
+}
+function deleteRow(rowId){
+  if(!confirm("¿Eliminar este movimiento?")) return;
+  const f = formatos.find(x=>x.id===view.id);
+  f.entries = f.entries.filter(e=>e.id!==rowId);
+  persist();
+  if(editingRowId===rowId) cancelEditRow(); else render();
+}
+function renameFormato(id){
+  const f = formatos.find(x=>x.id===id);
+  const name = prompt("Nombre del material:", f.material);
+  if(name && name.trim()){
+    f.material = name.trim();
+    persist();
+    render();
+  }
+}
+function editMaterial2(id){
+  const f = formatos.find(x=>x.id===id);
+  const current = f.material2 || f.material;
+  const name = prompt("Nombre del material para el Cuadro 2:", current);
+  if(name !== null && name.trim()){
+    f.material2 = name.trim();
+    persist();
+    render();
+  }
+}
+
+/* ---------- exportar / vista previa ---------- */
+function cellStyles(){
+  const border = "border:1px solid #505050;";
+  return {
+    cellC: `${border}text-align:center;padding:3px 6px;font-size:11pt;font-family:Calibri,Arial,sans-serif;`,
+    cellL: `${border}text-align:left;padding:3px 6px;font-size:11pt;font-family:Calibri,Arial,sans-serif;`,
+    head: `${border}text-align:center;font-weight:bold;padding:4px 6px;font-size:11pt;font-family:Calibri,Arial,sans-serif;background:#ffffff;`,
+    none: "border:none;"
+  };
+}
+
+// Construye las 5 columnas de un cuadro para una fila dada (o celdas vacías si no hay dato en esa posición)
+function buildBlockCells(rows, rowIndex, s){
+  const r = rows[rowIndex];
+  if(!r){
+    return `<td style="${s.cellC}">&nbsp;</td><td style="${s.cellC}">&nbsp;</td><td style="${s.cellC}">&nbsp;</td><td style="${s.cellC}">&nbsp;</td><td style="${s.cellL}">&nbsp;</td>`;
+  }
+  return `<td style="${s.cellC}">${esc(formatFechaDisplay(r.fecha))}</td>
+    <td style="${s.cellC}">${r.entrada ? esc(r.entrada) : ""}</td>
+    <td style="${s.cellC}">${r.salida ? esc(r.salida) : ""}</td>
+    <td style="${s.cellC}">${esc(r.saldo)}</td>
+    <td style="${s.cellL}">${esc(r.observ)}</td>`;
+}
+
+// Devuelve las filas de Cuadro 1 / Cuadro 2 (cada uno con su propio saldo independiente) y el nombre del Cuadro 2
+function getKardexRows(formato){
+  const { rowsC1, rowsC2 } = withSaldoPorCuadro(formato.entries);
+  const materialC2 = formato.material2 || formato.material;
+  return { rowsC1, rowsC2, materialC2 };
+}
+
+// Exporta UN formato: Cuadro 1 a la izquierda, Cuadro 2 a la derecha.
+// El nombre del Cuadro 2 es el que se haya puesto en la app (formato.material2),
+// o el mismo material si no se cambió.
+function buildKardexMarkup(formato){
+  const s = cellStyles();
+  const PADDING = 6;
+  const { rowsC1, rowsC2, materialC2 } = getKardexRows(formato);
+
+  const maxRows = Math.max(rowsC1.length, rowsC2.length) + PADDING;
+
+  const dataRows = Array.from({length:maxRows}).map((_,i) => `<tr>
+      ${buildBlockCells(rowsC1, i, s)}
+      <td style="${s.none}"></td>
+      ${buildBlockCells(rowsC2, i, s)}
+    </tr>`).join("");
+
+  return `<table id="kardexTable" style="border-collapse:collapse;">
+    <colgroup>
+      <col width="95"><col width="75"><col width="75"><col width="75"><col width="160">
+      <col width="22">
+      <col width="95"><col width="75"><col width="75"><col width="75"><col width="160">
+    </colgroup>
+    <tr style="height:26px;">
+      <td colspan="5" style="${s.none}font-size:16pt;font-weight:bold;color:#1F1F8F;font-family:Calibri,Arial,sans-serif;">BANAFRIOS S.A.S.</td>
+      <td style="${s.none}"></td>
+      <td colspan="5" style="${s.none}font-size:16pt;font-weight:bold;color:#1F1F8F;text-align:center;font-family:Calibri,Arial,sans-serif;">FINCA LAS MARGARITAS</td>
+    </tr>
+    <tr style="height:26px;">
+      <td colspan="5" style="${s.none}"></td>
+      <td style="${s.none}"></td>
+      <td colspan="5" style="${s.none}font-size:16pt;font-weight:bold;color:#CC0000;text-align:center;font-family:Calibri,Arial,sans-serif;">${esc(docCode)}</td>
+    </tr>
+    <tr style="height:22px;">
+      <td colspan="4" style="${s.none}font-weight:bold;font-family:Calibri,Arial,sans-serif;font-size:11pt;">MATERIAL</td>
+      <td style="${s.none}border-bottom:1px solid #000;font-family:Calibri,Arial,sans-serif;font-size:11pt;">${esc(formato.material)}</td>
+      <td style="${s.none}"></td>
+      <td colspan="4" style="${s.none}font-weight:bold;font-family:Calibri,Arial,sans-serif;font-size:11pt;">MATERIAL</td>
+      <td style="${s.none}border-bottom:1px solid #000;font-family:Calibri,Arial,sans-serif;font-size:11pt;">${esc(materialC2)}</td>
+    </tr>
+    <tr style="height:8px;"><td colspan="11" style="${s.none}"></td></tr>
+    <tr>
+      <th style="${s.head}">Fecha</th><th style="${s.head}">Entrada</th><th style="${s.head}">Salida</th><th style="${s.head}">Saldo</th><th style="${s.head}">Observac.</th>
+      <td style="${s.none}"></td>
+      <th style="${s.head}">Fecha</th><th style="${s.head}">Entrada</th><th style="${s.head}">Salida</th><th style="${s.head}">Saldo</th><th style="${s.head}">Observac.</th>
+    </tr>
+    ${dataRows}
+  </table>`;
+}
+
+function previewExport(formatoId){
+  const f = formatos.find(x=>x.id===formatoId);
+  if(!f) return;
+  const tableHtml = buildKardexMarkup(f);
+  const slug = f.material.trim().replace(/[^a-zA-Z0-9]+/g,"_").slice(0,40) || "material";
+  const { rowsC1, rowsC2, materialC2 } = getKardexRows(f);
+
+  const exportData = {
+    material1: f.material,
+    material2: materialC2,
+    docCode: docCode,
+    filename: "Kardex_" + slug + ".xlsx",
+    rowsC1: rowsC1.map(r => ({ fecha: formatFechaDisplay(r.fecha), entrada: r.entrada || "", salida: r.salida || "", saldo: r.saldo, observ: r.observ || "" })),
+    rowsC2: rowsC2.map(r => ({ fecha: formatFechaDisplay(r.fecha), entrada: r.entrada || "", salida: r.salida || "", saldo: r.saldo, observ: r.observ || "" }))
+  };
+  const exportDataJson = JSON.stringify(exportData).replace(/<\//g, "<\\/");
+
+  const win = window.open("", "_blank");
+  if(!win){ toast("Habilita las ventanas emergentes para ver la vista previa"); return; }
+  win.document.open();
+  win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8">
+    <title>Vista previa — ${esc(f.material)}</title>
+    <style>
+      body{font-family:Arial,sans-serif;margin:0;background:#e9e4d8;}
+      .toolbar{position:sticky;top:0;background:#1F2A44;color:#fff;padding:12px 22px;display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;}
+      .toolbar span{font-size:14px;}
+      .toolbar button{background:#A6342A;color:#fff;border:none;padding:9px 18px;border-radius:4px;cursor:pointer;font-size:13.5px;font-weight:600;}
+      .toolbar button:hover{opacity:.9;}
+      .toolbar button.secondary{background:transparent;border:1.5px solid #fff;}
+      .wrap{padding:28px;overflow:auto;}
+    </style></head>
+    <body>
+      <div class="toolbar">
+        <span>Vista previa — Cuadro 1: ${esc(f.material)} · Cuadro 2: ${esc(materialC2)}</span>
+        <div style="display:flex;gap:10px;">
+          <button id="addRowsBtn" class="secondary">+ Agregar líneas</button>
+          <button id="dlBtn">⬇ Descargar como Excel (.xlsx)</button>
+        </div>
+      </div>
+      <div class="wrap">${tableHtml}</div>
+      <script>
+        var KARDEX_DATA = ${exportDataJson};
+        var EXTRA_ROWS = 0;
+        var CELL_C = "border:1px solid #505050;text-align:center;padding:3px 6px;font-size:11pt;font-family:Calibri,Arial,sans-serif;";
+        var CELL_L = "border:1px solid #505050;text-align:left;padding:3px 6px;font-size:11pt;font-family:Calibri,Arial,sans-serif;";
+        var NONE = "border:none;";
+
+        document.getElementById('addRowsBtn').onclick = function(){
+          EXTRA_ROWS += 10;
+          var table = document.getElementById('kardexTable');
+          for(var n=0; n<10; n++){
+            var tr = document.createElement('tr');
+            tr.innerHTML =
+              '<td style="'+CELL_C+'">&nbsp;</td><td style="'+CELL_C+'">&nbsp;</td><td style="'+CELL_C+'">&nbsp;</td><td style="'+CELL_C+'">&nbsp;</td><td style="'+CELL_L+'">&nbsp;</td>'
+              + '<td style="'+NONE+'"></td>'
+              + '<td style="'+CELL_C+'">&nbsp;</td><td style="'+CELL_C+'">&nbsp;</td><td style="'+CELL_C+'">&nbsp;</td><td style="'+CELL_C+'">&nbsp;</td><td style="'+CELL_L+'">&nbsp;</td>';
+            table.appendChild(tr);
+          }
+        };
+
+        /* ---- generador de .xlsx real, sin librerías externas (ZIP + XML de Excel hechos a mano) ---- */
+        function crcTable(){
+          var table = new Uint32Array(256);
+          for(var n=0;n<256;n++){
+            var c=n;
+            for(var k=0;k<8;k++){ c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1); }
+            table[n]=c>>>0;
+          }
+          return table;
+        }
+        var CRC_TABLE = crcTable();
+        function crc32(bytes){
+          var crc = 0xFFFFFFFF;
+          for(var i=0;i<bytes.length;i++){ crc = CRC_TABLE[(crc ^ bytes[i]) & 0xFF] ^ (crc >>> 8); }
+          return (crc ^ 0xFFFFFFFF) >>> 0;
+        }
+        function u8(str){ return new TextEncoder().encode(str); }
+        function wU32(arr, o, v){ arr[o]=v&0xFF; arr[o+1]=(v>>>8)&0xFF; arr[o+2]=(v>>>16)&0xFF; arr[o+3]=(v>>>24)&0xFF; }
+        function wU16(arr, o, v){ arr[o]=v&0xFF; arr[o+1]=(v>>>8)&0xFF; }
+
+        async function deflateRaw(bytes){
+          if(typeof CompressionStream === 'undefined') return null; // navegador sin soporte: se usará STORE como respaldo
+          var cs = new CompressionStream('deflate-raw');
+          var writer = cs.writable.getWriter();
+          writer.write(bytes);
+          writer.close();
+          var chunks = [];
+          var reader = cs.readable.getReader();
+          while(true){
+            var res = await reader.read();
+            if(res.done) break;
+            chunks.push(res.value);
+          }
+          var total = 0; chunks.forEach(function(c){ total += c.length; });
+          var out = new Uint8Array(total), pos = 0;
+          chunks.forEach(function(c){ out.set(c,pos); pos += c.length; });
+          return out;
+        }
+
+        async function buildZip(files){
+          var localParts=[], centralParts=[], offset=0;
+          for(var fi=0; fi<files.length; fi++){
+            var file = files[fi];
+            var nameBytes = u8(file.name), data = file.data, crc = crc32(data), uncompSize = data.length;
+            var compressed = await deflateRaw(data);
+            var method = compressed ? 8 : 0; // 8 = deflate, 0 = stored (respaldo)
+            var payload = compressed ? compressed : data;
+            var compSize = payload.length;
+
+            var local = new Uint8Array(30+nameBytes.length);
+            wU32(local,0,0x04034b50); wU16(local,4,20); wU16(local,6,0); wU16(local,8,method);
+            wU16(local,10,0); wU16(local,12,0x21); wU32(local,14,crc); wU32(local,18,compSize); wU32(local,22,uncompSize);
+            wU16(local,26,nameBytes.length); wU16(local,28,0); local.set(nameBytes,30);
+            localParts.push(local); localParts.push(payload);
+
+            var central = new Uint8Array(46+nameBytes.length);
+            wU32(central,0,0x02014b50); wU16(central,4,20); wU16(central,6,20); wU16(central,8,0); wU16(central,10,method);
+            wU16(central,12,0); wU16(central,14,0x21); wU32(central,16,crc); wU32(central,20,compSize); wU32(central,24,uncompSize);
+            wU16(central,28,nameBytes.length); wU16(central,30,0); wU16(central,32,0); wU16(central,34,0); wU16(central,36,0);
+            wU32(central,38,0); wU32(central,42,offset); central.set(nameBytes,46);
+            centralParts.push(central);
+            offset += local.length + payload.length;
+          }
+          var centralOffset = offset, centralSize = 0;
+          centralParts.forEach(function(p){ centralSize += p.length; });
+          var eocd = new Uint8Array(22);
+          wU32(eocd,0,0x06054b50); wU16(eocd,4,0); wU16(eocd,6,0); wU16(eocd,8,files.length); wU16(eocd,10,files.length);
+          wU32(eocd,12,centralSize); wU32(eocd,16,centralOffset); wU16(eocd,20,0);
+          var allParts = localParts.concat(centralParts).concat([eocd]);
+          var totalLen=0; allParts.forEach(function(p){ totalLen+=p.length; });
+          var result = new Uint8Array(totalLen), pos=0;
+          allParts.forEach(function(p){ result.set(p,pos); pos+=p.length; });
+          return result;
+        }
+
+        function xmlEsc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+        function sCell(ref, xf, text){
+          return '<c r="'+ref+'" s="'+xf+'" t="inlineStr"><is><t xml:space="preserve">'+(text?xmlEsc(text):'')+'</t></is></c>';
+        }
+        function nCell(ref, xf, num){
+          if(num === "" || num===null || num===undefined) return sCell(ref, xf, "");
+          return '<c r="'+ref+'" s="'+xf+'"><v>'+Number(num)+'</v></c>';
+        }
+
+        async function buildAndDownloadXlsx(){
+          var PADDING_BASE = 6;
+          var maxRows = Math.max(KARDEX_DATA.rowsC1.length, KARDEX_DATA.rowsC2.length) + PADDING_BASE + EXTRA_ROWS;
+
+          var rows = "";
+          rows += '<row r="1">'+sCell("A1",1,"BANAFRIOS S.A.S.")+sCell("H1",1,"FINCA LAS MARGARITAS")+'</row>';
+          rows += '<row r="2">'+sCell("H2",3,KARDEX_DATA.docCode)+'</row>';
+          rows += '<row r="3">'+sCell("A3",4,"MATERIAL")+sCell("B3",0,KARDEX_DATA.material1)+sCell("H3",4,"MATERIAL")+sCell("I3",0,KARDEX_DATA.material2)+'</row>';
+          var headers = ["Fecha","Entrada","Salida","Saldo","Observac."];
+          rows += '<row r="5">'+["A5","B5","C5","D5","E5"].map(function(r,i){return sCell(r,5,headers[i]);}).join("")+["G5","H5","I5","J5","K5"].map(function(r,i){return sCell(r,5,headers[i]);}).join("")+'</row>';
+
+          for(var i=0;i<maxRows;i++){
+            var rowNum = 6+i;
+            var r1 = KARDEX_DATA.rowsC1[i];
+            var r2 = KARDEX_DATA.rowsC2[i];
+            var cells = [];
+            cells.push(sCell("A"+rowNum,6, r1?r1.fecha:""));
+            cells.push(nCell("B"+rowNum,6, r1?r1.entrada:""));
+            cells.push(nCell("C"+rowNum,6, r1?r1.salida:""));
+            cells.push(nCell("D"+rowNum,6, r1?r1.saldo:""));
+            cells.push(sCell("E"+rowNum,6, r1?r1.observ:""));
+            cells.push(sCell("G"+rowNum,7, r2?r2.fecha:""));
+            cells.push(nCell("H"+rowNum,7, r2?r2.entrada:""));
+            cells.push(nCell("I"+rowNum,7, r2?r2.salida:""));
+            cells.push(nCell("J"+rowNum,7, r2?r2.saldo:""));
+            cells.push(sCell("K"+rowNum,7, r2?r2.observ:""));
+            rows += '<row r="'+rowNum+'">'+cells.join("")+'</row>';
+          }
+
+          var lastRowNum = 5 + maxRows;
+          var sheetXml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+            + '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'
+            + '<sheetPr><outlinePr summaryBelow="1" summaryRight="1"/><pageSetUpPr/></sheetPr>'
+            + '<dimension ref="A1:K'+lastRowNum+'"/>'
+            + '<sheetViews><sheetView workbookViewId="0"><selection activeCell="A1" sqref="A1"/></sheetView></sheetViews>'
+            + '<sheetFormatPr baseColWidth="8" defaultRowHeight="15"/>'
+            + '<cols><col width="12" customWidth="1" min="1" max="1"/><col width="10" customWidth="1" min="2" max="2"/><col width="10" customWidth="1" min="3" max="3"/><col width="10" customWidth="1" min="4" max="4"/><col width="14" customWidth="1" min="5" max="5"/><col width="3" customWidth="1" min="6" max="6"/><col width="12" customWidth="1" min="7" max="7"/><col width="10" customWidth="1" min="8" max="8"/><col width="10" customWidth="1" min="9" max="9"/><col width="10" customWidth="1" min="10" max="10"/><col width="14" customWidth="1" min="11" max="11"/></cols>'
+            + '<sheetData>'+rows+'</sheetData>'
+            + '<mergeCells count="4"><mergeCell ref="H1:J1"/><mergeCell ref="H2:J2"/><mergeCell ref="B3:D3"/><mergeCell ref="I3:J3"/></mergeCells>'
+            + '<pageMargins left="0.75" right="0.75" top="1" bottom="1" header="0.5" footer="0.5"/>'
+            + '</worksheet>';
+
+          // Estilos, tema y metadatos: copia exacta de la estructura de tu archivo de referencia
+          // (mismo esquema de fuentes/bordes/colores que ya se ve correctamente en tu Excel).
+          var stylesXml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
+            + '<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'
+            + '<numFmts count="0"/>'
+            + '<fonts count="5"><font><name val="Calibri"/><family val="2"/><color theme="1"/><sz val="11"/><scheme val="minor"/></font><font><b val="1"/><color rgb="001F1F8F"/><sz val="14"/></font><font><i val="1"/><sz val="11"/></font><font><b val="1"/><color rgb="00CC0000"/><sz val="14"/></font><font><b val="1"/></font></fonts>'
+            + '<fills count="2"><fill><patternFill/></fill><fill><patternFill patternType="gray125"/></fill></fills>'
+            + '<borders count="2"><border><left/><right/><top/><bottom/><diagonal/></border><border><left style="thin"/><right style="thin"/><top style="thin"/><bottom style="thin"/></border></borders>'
+            + '<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>'
+            + '<cellXfs count="8">'
+            + '<xf numFmtId="0" fontId="0" fillId="0" borderId="0" pivotButton="0" quotePrefix="0" xfId="0"/>'
+            + '<xf numFmtId="0" fontId="1" fillId="0" borderId="0" pivotButton="0" quotePrefix="0" xfId="0"/>'
+            + '<xf numFmtId="0" fontId="2" fillId="0" borderId="0" pivotButton="0" quotePrefix="0" xfId="0"/>'
+            + '<xf numFmtId="0" fontId="3" fillId="0" borderId="0" applyAlignment="1" pivotButton="0" quotePrefix="0" xfId="0"><alignment horizontal="center"/></xf>'
+            + '<xf numFmtId="0" fontId="4" fillId="0" borderId="0" pivotButton="0" quotePrefix="0" xfId="0"/>'
+            + '<xf numFmtId="0" fontId="4" fillId="0" borderId="1" applyAlignment="1" pivotButton="0" quotePrefix="0" xfId="0"><alignment horizontal="center"/></xf>'
+            + '<xf numFmtId="0" fontId="0" fillId="0" borderId="1" applyAlignment="1" pivotButton="0" quotePrefix="0" xfId="0"><alignment horizontal="center"/></xf>'
+            + '<xf numFmtId="0" fontId="0" fillId="0" borderId="1" pivotButton="0" quotePrefix="0" xfId="0"/>'
+            + '</cellXfs>'
+            + '<cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0" hidden="0"/></cellStyles>'
+            + '<tableStyles count="0" defaultTableStyle="TableStyleMedium9" defaultPivotStyle="PivotStyleLight16"/>'
+            + '<colors><indexedColors><rgbColor rgb="00000000"/><rgbColor rgb="00FFFFFF"/><rgbColor rgb="00FF0000"/><rgbColor rgb="0000FF00"/><rgbColor rgb="000000FF"/><rgbColor rgb="00FFFF00"/><rgbColor rgb="00FF00FF"/><rgbColor rgb="0000FFFF"/><rgbColor rgb="00000000"/><rgbColor rgb="00FFFFFF"/><rgbColor rgb="00FF0000"/><rgbColor rgb="0000FF00"/><rgbColor rgb="000000FF"/><rgbColor rgb="00FFFF00"/><rgbColor rgb="00FF00FF"/><rgbColor rgb="0000FFFF"/><rgbColor rgb="00800000"/><rgbColor rgb="00008000"/><rgbColor rgb="00000080"/><rgbColor rgb="00808000"/><rgbColor rgb="00800080"/><rgbColor rgb="00008080"/><rgbColor rgb="00C0C0C0"/><rgbColor rgb="00808080"/><rgbColor rgb="009999FF"/><rgbColor rgb="00993366"/><rgbColor rgb="00FFFFCC"/><rgbColor rgb="00CCFFFF"/><rgbColor rgb="00660066"/><rgbColor rgb="00FF8080"/><rgbColor rgb="000066CC"/><rgbColor rgb="00CCCCFF"/><rgbColor rgb="00000080"/><rgbColor rgb="00FF00FF"/><rgbColor rgb="00FFFF00"/><rgbColor rgb="0000FFFF"/><rgbColor rgb="00800080"/><rgbColor rgb="00800000"/><rgbColor rgb="00008080"/><rgbColor rgb="000000FF"/><rgbColor rgb="0000CCFF"/><rgbColor rgb="00CCFFFF"/><rgbColor rgb="00CCFFCC"/><rgbColor rgb="00FFFF99"/><rgbColor rgb="0099CCFF"/><rgbColor rgb="00FF99CC"/><rgbColor rgb="00CC99FF"/><rgbColor rgb="00FFCC99"/><rgbColor rgb="003366FF"/><rgbColor rgb="0033CCCC"/><rgbColor rgb="0099CC00"/><rgbColor rgb="00FFCC00"/><rgbColor rgb="00FF9900"/><rgbColor rgb="00FF6600"/><rgbColor rgb="00666699"/><rgbColor rgb="00969696"/><rgbColor rgb="00003366"/><rgbColor rgb="00339966"/><rgbColor rgb="00003300"/><rgbColor rgb="00333300"/><rgbColor rgb="00993300"/><rgbColor rgb="00993366"/><rgbColor rgb="00333399"/><rgbColor rgb="00333333"/></indexedColors></colors>'
+            + '</styleSheet>';
+
+          var themeXml = '<?xml version="1.0"?><a:theme xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" name="Office Theme"><a:themeElements><a:clrScheme name="Office"><a:dk1><a:sysClr val="windowText" lastClr="000000"/></a:dk1><a:lt1><a:sysClr val="window" lastClr="FFFFFF"/></a:lt1><a:dk2><a:srgbClr val="1F497D"/></a:dk2><a:lt2><a:srgbClr val="EEECE1"/></a:lt2><a:accent1><a:srgbClr val="4F81BD"/></a:accent1><a:accent2><a:srgbClr val="C0504D"/></a:accent2><a:accent3><a:srgbClr val="9BBB59"/></a:accent3><a:accent4><a:srgbClr val="8064A2"/></a:accent4><a:accent5><a:srgbClr val="4BACC6"/></a:accent5><a:accent6><a:srgbClr val="F79646"/></a:accent6><a:hlink><a:srgbClr val="0000FF"/></a:hlink><a:folHlink><a:srgbClr val="800080"/></a:folHlink></a:clrScheme><a:fontScheme name="Office"><a:majorFont><a:latin typeface="Cambria"/><a:ea typeface=""/><a:cs typeface=""/><a:font script="Jpan" typeface="&#xFF2D;&#xFF33; &#xFF30;&#x30B4;&#x30B7;&#x30C3;&#x30AF;"/><a:font script="Hang" typeface="&#xB9D1;&#xC740; &#xACE0;&#xB515;"/><a:font script="Hans" typeface="&#x5B8B;&#x4F53;"/><a:font script="Hant" typeface="&#x65B0;&#x7D30;&#x660E;&#x9AD4;"/><a:font script="Arab" typeface="Times New Roman"/><a:font script="Hebr" typeface="Times New Roman"/><a:font script="Thai" typeface="Tahoma"/><a:font script="Ethi" typeface="Nyala"/><a:font script="Beng" typeface="Vrinda"/><a:font script="Gujr" typeface="Shruti"/><a:font script="Khmr" typeface="MoolBoran"/><a:font script="Knda" typeface="Tunga"/><a:font script="Guru" typeface="Raavi"/><a:font script="Cans" typeface="Euphemia"/><a:font script="Cher" typeface="Plantagenet Cherokee"/><a:font script="Yiii" typeface="Microsoft Yi Baiti"/><a:font script="Tibt" typeface="Microsoft Himalaya"/><a:font script="Thaa" typeface="MV Boli"/><a:font script="Deva" typeface="Mangal"/><a:font script="Telu" typeface="Gautami"/><a:font script="Taml" typeface="Latha"/><a:font script="Syrc" typeface="Estrangelo Edessa"/><a:font script="Orya" typeface="Kalinga"/><a:font script="Mlym" typeface="Kartika"/><a:font script="Laoo" typeface="DokChampa"/><a:font script="Sinh" typeface="Iskoola Pota"/><a:font script="Mong" typeface="Mongolian Baiti"/><a:font script="Viet" typeface="Times New Roman"/><a:font script="Uigh" typeface="Microsoft Uighur"/></a:majorFont><a:minorFont><a:latin typeface="Calibri"/><a:ea typeface=""/><a:cs typeface=""/><a:font script="Jpan" typeface="&#xFF2D;&#xFF33; &#xFF30;&#x30B4;&#x30B7;&#x30C3;&#x30AF;"/><a:font script="Hang" typeface="&#xB9D1;&#xC740; &#xACE0;&#xB515;"/><a:font script="Hans" typeface="&#x5B8B;&#x4F53;"/><a:font script="Hant" typeface="&#x65B0;&#x7D30;&#x660E;&#x9AD4;"/><a:font script="Arab" typeface="Arial"/><a:font script="Hebr" typeface="Arial"/><a:font script="Thai" typeface="Tahoma"/><a:font script="Ethi" typeface="Nyala"/><a:font script="Beng" typeface="Vrinda"/><a:font script="Gujr" typeface="Shruti"/><a:font script="Khmr" typeface="DaunPenh"/><a:font script="Knda" typeface="Tunga"/><a:font script="Guru" typeface="Raavi"/><a:font script="Cans" typeface="Euphemia"/><a:font script="Cher" typeface="Plantagenet Cherokee"/><a:font script="Yiii" typeface="Microsoft Yi Baiti"/><a:font script="Tibt" typeface="Microsoft Himalaya"/><a:font script="Thaa" typeface="MV Boli"/><a:font script="Deva" typeface="Mangal"/><a:font script="Telu" typeface="Gautami"/><a:font script="Taml" typeface="Latha"/><a:font script="Syrc" typeface="Estrangelo Edessa"/><a:font script="Orya" typeface="Kalinga"/><a:font script="Mlym" typeface="Kartika"/><a:font script="Laoo" typeface="DokChampa"/><a:font script="Sinh" typeface="Iskoola Pota"/><a:font script="Mong" typeface="Mongolian Baiti"/><a:font script="Viet" typeface="Arial"/><a:font script="Uigh" typeface="Microsoft Uighur"/></a:minorFont></a:fontScheme><a:fmtScheme name="Office"><a:fillStyleLst><a:solidFill><a:schemeClr val="phClr"/></a:solidFill><a:gradFill rotWithShape="1"><a:gsLst><a:gs pos="0"><a:schemeClr val="phClr"><a:tint val="50000"/><a:satMod val="300000"/></a:schemeClr></a:gs><a:gs pos="35000"><a:schemeClr val="phClr"><a:tint val="37000"/><a:satMod val="300000"/></a:schemeClr></a:gs><a:gs pos="100000"><a:schemeClr val="phClr"><a:tint val="15000"/><a:satMod val="350000"/></a:schemeClr></a:gs></a:gsLst><a:lin ang="16200000" scaled="1"/></a:gradFill><a:gradFill rotWithShape="1"><a:gsLst><a:gs pos="0"><a:schemeClr val="phClr"><a:shade val="51000"/><a:satMod val="130000"/></a:schemeClr></a:gs><a:gs pos="80000"><a:schemeClr val="phClr"><a:shade val="93000"/><a:satMod val="130000"/></a:schemeClr></a:gs><a:gs pos="100000"><a:schemeClr val="phClr"><a:shade val="94000"/><a:satMod val="135000"/></a:schemeClr></a:gs></a:gsLst><a:lin ang="16200000" scaled="0"/></a:gradFill></a:fillStyleLst><a:lnStyleLst><a:ln w="9525" cap="flat" cmpd="sng" algn="ctr"><a:solidFill><a:schemeClr val="phClr"><a:shade val="95000"/><a:satMod val="105000"/></a:schemeClr></a:solidFill><a:prstDash val="solid"/></a:ln><a:ln w="25400" cap="flat" cmpd="sng" algn="ctr"><a:solidFill><a:schemeClr val="phClr"/></a:solidFill><a:prstDash val="solid"/></a:ln><a:ln w="38100" cap="flat" cmpd="sng" algn="ctr"><a:solidFill><a:schemeClr val="phClr"/></a:solidFill><a:prstDash val="solid"/></a:ln></a:lnStyleLst><a:effectStyleLst><a:effectStyle><a:effectLst><a:outerShdw blurRad="40000" dist="20000" dir="5400000" rotWithShape="0"><a:srgbClr val="000000"><a:alpha val="38000"/></a:srgbClr></a:outerShdw></a:effectLst></a:effectStyle><a:effectStyle><a:effectLst><a:outerShdw blurRad="40000" dist="23000" dir="5400000" rotWithShape="0"><a:srgbClr val="000000"><a:alpha val="35000"/></a:srgbClr></a:outerShdw></a:effectLst></a:effectStyle><a:effectStyle><a:effectLst><a:outerShdw blurRad="40000" dist="23000" dir="5400000" rotWithShape="0"><a:srgbClr val="000000"><a:alpha val="35000"/></a:srgbClr></a:outerShdw></a:effectLst><a:scene3d><a:camera prst="orthographicFront"><a:rot lat="0" lon="0" rev="0"/></a:camera><a:lightRig rig="threePt" dir="t"><a:rot lat="0" lon="0" rev="1200000"/></a:lightRig></a:scene3d><a:sp3d><a:bevelT w="63500" h="25400"/></a:sp3d></a:effectStyle></a:effectStyleLst><a:bgFillStyleLst><a:solidFill><a:schemeClr val="phClr"/></a:solidFill><a:gradFill rotWithShape="1"><a:gsLst><a:gs pos="0"><a:schemeClr val="phClr"><a:tint val="40000"/><a:satMod val="350000"/></a:schemeClr></a:gs><a:gs pos="40000"><a:schemeClr val="phClr"><a:tint val="45000"/><a:shade val="99000"/><a:satMod val="350000"/></a:schemeClr></a:gs><a:gs pos="100000"><a:schemeClr val="phClr"><a:shade val="20000"/><a:satMod val="255000"/></a:schemeClr></a:gs></a:gsLst><a:path path="circle"><a:fillToRect l="50000" t="-80000" r="50000" b="180000"/></a:path></a:gradFill><a:gradFill rotWithShape="1"><a:gsLst><a:gs pos="0"><a:schemeClr val="phClr"><a:tint val="80000"/><a:satMod val="300000"/></a:schemeClr></a:gs><a:gs pos="100000"><a:schemeClr val="phClr"><a:shade val="30000"/><a:satMod val="200000"/></a:schemeClr></a:gs></a:gsLst><a:path path="circle"><a:fillToRect l="50000" t="50000" r="50000" b="50000"/></a:path></a:gradFill></a:bgFillStyleLst></a:fmtScheme></a:themeElements><a:objectDefaults/><a:extraClrSchemeLst/></a:theme>';
+
+          var workbookXml = '<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><workbookPr/><workbookProtection/><bookViews><workbookView visibility="visible" minimized="0" showHorizontalScroll="1" showVerticalScroll="1" showSheetTabs="1" tabRatio="600" firstSheet="0" activeTab="0" autoFilterDateGrouping="1"/></bookViews><sheets><sheet xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" name="Kardex" sheetId="1" state="visible" r:id="rId1"/></sheets><definedNames/><calcPr calcId="124519" fullCalcOnLoad="1"/></workbook>';
+          var workbookRels = '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="/xl/worksheets/sheet1.xml" Id="rId1"/><Relationship Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml" Id="rId2"/><Relationship Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/theme" Target="theme/theme1.xml" Id="rId3"/></Relationships>';
+          var rootRels = '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml" Id="rId1"/><Relationship Type="http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties" Target="docProps/core.xml" Id="rId2"/><Relationship Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/extended-properties" Target="docProps/app.xml" Id="rId3"/></Relationships>';
+          var contentTypes = '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/><Override PartName="/xl/theme/theme1.xml" ContentType="application/vnd.openxmlformats-officedocument.theme+xml"/><Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/><Override PartName="/docProps/app.xml" ContentType="application/vnd.openxmlformats-officedocument.extended-properties+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/></Types>';
+          var appXml = '<Properties xmlns="http://schemas.openxmlformats.org/officeDocument/2006/extended-properties"><Application>Microsoft Excel Compatible / Kardex</Application><AppVersion>3.1</AppVersion></Properties>';
+          var nowIso = new Date().toISOString().replace(/\.\d+Z$/,'Z');
+          var coreXml = '<cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties"><dc:creator xmlns:dc="http://purl.org/dc/elements/1.1/">Kardex</dc:creator><dcterms:created xmlns:dcterms="http://purl.org/dc/terms/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="dcterms:W3CDTF">'+nowIso+'</dcterms:created><dcterms:modified xmlns:dcterms="http://purl.org/dc/terms/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:type="dcterms:W3CDTF">'+nowIso+'</dcterms:modified></cp:coreProperties>';
+
+          var files = [
+            {name:"[Content_Types].xml", data: u8(contentTypes)},
+            {name:"_rels/.rels", data: u8(rootRels)},
+            {name:"xl/workbook.xml", data: u8(workbookXml)},
+            {name:"xl/_rels/workbook.xml.rels", data: u8(workbookRels)},
+            {name:"xl/styles.xml", data: u8(stylesXml)},
+            {name:"xl/theme/theme1.xml", data: u8(themeXml)},
+            {name:"xl/worksheets/sheet1.xml", data: u8(sheetXml)},
+            {name:"docProps/app.xml", data: u8(appXml)},
+            {name:"docProps/core.xml", data: u8(coreXml)}
+          ];
+
+          var zipBytes = await buildZip(files);
+          var blob = new Blob([zipBytes], {type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"});
+          var url = URL.createObjectURL(blob);
+          var a = document.createElement('a');
+          a.href = url; a.download = KARDEX_DATA.filename;
+          document.body.appendChild(a); a.click(); document.body.removeChild(a);
+          setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
+        }
+
+        document.getElementById('dlBtn').onclick = buildAndDownloadXlsx;
+      <\/script>
+    </body></html>`);
+  win.document.close();
+}
+
+render();
+</script>
+</body>
+</html>
